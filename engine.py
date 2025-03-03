@@ -4,6 +4,8 @@ import live2d.v3 as live2d
 import threading
 import queue
 import time
+import json
+import random
 
 from pygame.locals import *
 
@@ -17,10 +19,12 @@ from pyht import Client
 from pyht.client import TTSOptions
 from smallest import Smallest
 
+
+from prompts import BIO_PROMPT, LOOK_AROUND_PROMPT, GENERATE_EXPRESSION_PROMPT
+
 class Agent:
 
-    model = None
-    motion_names = []
+    motion_names = {}
     expression_names = []
 
     mouth_params = []
@@ -31,18 +35,30 @@ class Agent:
     current_expression = None
 
 
-    def __init__(self, model_path: str, model_file: str, display: list = (1000, 1700)):
+    def __init__(self, model_path: str, display: list = (1000, 1700)):
         
         self.display = display
         self.model_path = model_path
         self.running = True
         self.dx, self.dy = 0.0, 0.0
+        self.look_dx, self.look_dy = display[0]/2, display[1]/2
         self.scale = 1.0
         self.lip_sync_multiplier = 10.0  # Increase multiplier for more sensitivity
         self.message_queue = queue.Queue()  # Queue for communication between threads
         self.current_top_clicked_part_id = None
         self.part_ids = []
+        self.prompt_response = "Random movement"
         
+        self.look = {
+            "left": (0, display[1]/2), 
+            "right": (display[0], display[1]/2),
+            "down": (display[0]/2, 0),
+            "up": (display[0]/2, display[1]),
+            "straight": (display[0]/2,display[1]/2)
+        }
+
+        
+
         # Mutex for audio file access
         self.audio_mutex = threading.Lock()
         self.audio_in_use = False
@@ -68,21 +84,35 @@ class Agent:
         self.smallest_ai_client = Smallest(api_key=os.environ["SMALLEST_API_KEY"])
 
 
-        self.model.LoadModelJson(os.path.join(model_path, model_file))
+        self.model.LoadModelJson(os.path.join(model_path))
         self.model.Resize(*display)
 
 
-    def get_expression_names(self, path: str):
-        expression_file_names = os.listdir(os.path.join(path, "expressions"))
-        expression_names = [expression.split(".")[0] for expression in expression_file_names]
-        self.expression_names = expression_names
+    def get_expression_names(self):
+        
+        "Extract expression names from expression directory"
+        
+        with open(self.model_path, "r") as file:
+            data = json.load(file)
+            expressions: list[dict] = data["FileReferences"]["Expressions"]
+            expression_names = [expression["Name"] for expression in expressions]
+            self.expression_names = expression_names
 
-    def get_motion_names(self, path: str):
-        motion_file_names = os.listdir(os.path.join(path, "motions"))
-        motion_names = [expression.split(".")[0] for expression in motion_file_names]
-        self.motion_names = motion_names
+    def get_motion_names(self):
+
+        "Extract motions based on group type, group = idle/moving"
+        
+        with open(self.model_path, "r") as file:
+            data = json.load(file)
+            motion_groups: dict = data["FileReferences"]["Motions"]
+            for group in motion_groups.keys():
+                motion_count = len(data["FileReferences"]["Motions"][group])
+                self.motion_names[group] = motion_count
 
     def get_model_params(self):
+
+        "Fetches facial parameters of a model, used for lypsyncing and moving the mouth"
+
         for i in range(self.model.GetParameterCount()):
             param = self.model.GetParameter(i)
             param_id = param.id
@@ -133,24 +163,13 @@ class Agent:
                 
         return "output.wav"
 
-    def generate_expression(self, content):
-        response = self.llm.invoke(f"""
-            given below are the list of expression names, based on given text below output any one expression that
-            fits bets for the text emotion. output action with no space nothing and exact expression name nothing else.
-            try to use all the expression and not repeat.
-            Expression:
-            {self.expression_names}   
-
-            Text:
-            {content}
-
-            output relevent expression based on the given text
-        """)
-
-        return response.content
 
     def llm_worker(self):
         """Worker thread to generate LLM content and speech"""
+
+        generate_expression_chain = GENERATE_EXPRESSION_PROMPT | self.llm 
+        generate_response_chain = BIO_PROMPT | self.llm
+
         while self.running:
             try:
                 # Wait for previous audio to finish playing
@@ -159,18 +178,18 @@ class Agent:
                     self.audio_done.wait(timeout=10)  # Wait with timeout
                     self.audio_done.clear()
                 
-                print("======")
                 print("LLM thread: Generating content...")
-                response = self.llm.invoke("""
-                    You are a beautiful crypto anime character, generate normal talk of short length max 50-100 words, 
-                    only give me the text nothing else
-                """)
+
+                response = generate_response_chain.invoke({"expressions": self.expression_names})
                 content = response.content
+                self.prompt_response = content
+
                 print(f"LLM thread: Content generated: {content[:30]}...")
 
                 # Generate expression
                 print("LLM thread: Generating expression...")
-                expression = self.generate_expression(content)
+                response = generate_expression_chain.invoke({"expression_names": self.expression_names, "content": content})
+                expression = response.content
                 print(f"LLM thread: Expression generated: {expression}")
                 
                 # Generate speech
@@ -191,7 +210,7 @@ class Agent:
                 # Sleep with timeout check to avoid getting stuck
                 start_time = time.time()
                 while time.time() - start_time < 3 and self.running:  # 3 seconds
-                    sleep(5)  # Short sleep to allow for cleaner thread exit
+                    sleep(10)  # Short sleep to allow for cleaner thread exit
                 
                 print("LLM thread: Woke up, starting next iteration")
             except Exception as e:
@@ -199,15 +218,81 @@ class Agent:
                 # Sleep with shorter timeout for error recovery
                 sleep(2)
 
+    def idle_motion_worker(self):
+
+        groups = list(self.motion_names.keys())
+
+        while True:
+            
+            selected = random.choices(groups)
+
+            self.model.StartRandomMotion(selected[0], 3)
+
+            sleep(random.randint(8,20))
+
+    def look_around_worker(self):
+
+        while True:
+            # print("Look around started")
+            # response = self.llm.invoke(f"""
+            #     Given {self.display} which is size of the total screen,
+            #     Now in center of the screen we have a Animated character 
+            #     which is talking and needs to look around.
+
+            #     Your task is to generate a point where it will look currently 
+
+            #     eg: [100,200]
+            #     this examples shows the character will be looking at this point
+            #     generate this head movement based on given content it will be speaking.
+                
+            #     Don't generate random points currently the head is looking at 
+            #     [{self.look_dx}, {self.look_dy}], so generate new point based on this and 
+            #     it should not look random.
+                
+            #     if the Content doesnt make sense then generate what you think is good.
+            #     your response should not not be a program and no comments
+
+            #     Content:
+            #     {self.prompt_response}
+            # """)
+
+            # try:
+            #     print(response.content)
+            #     movement: list[2] = json.loads(response.content)
+            #     self.look_dx = movement[0]
+            #     self.look_dy = movement[1]
+
+            # except Exception as e:
+            #     print(e)
+            #     pass
+
+            choices = ["straight"] * 6 + ["left", "right", "up", "down"]  # 60% straight, 10% others
+            selected = random.choice(choices)
+            self.look_dx, self.look_dy = self.look[selected]
+            print("Look selected: ", selected)
+            sleep(5)
+
     def run_agent(self):
         """Main method that runs everything"""
         print("Starting agent....")
+
+        self.get_expression_names()
+        self.get_motion_names()
+        self.get_model_params()
         
         # Start LLM thread
         self.running = True
         llm_thread = threading.Thread(target=self.llm_worker)
         llm_thread.daemon = True  # Make thread daemon so it exits when main thread exits
         llm_thread.start()
+
+        expression_thread = threading.Thread(target=self.look_around_worker)
+        expression_thread.daemon = True
+        expression_thread.start()
+
+        motion_thread = threading.Thread(target=self.idle_motion_worker)
+        motion_thread.daemon = True
+        motion_thread.start()
         
         print("Main thread: LLM worker thread started")
         print("Main thread: Starting video loop")
@@ -230,17 +315,25 @@ class Agent:
             start_time = time.time()
             while llm_thread.is_alive() and time.time() - start_time < 5:  # 5 second timeout
                 sleep(0.1)
+
+            while expression_thread.is_alive() and time.time() - start_time < 5:  # 5 second timeout
+                sleep(0.1)
+
+            while motion_thread.is_alive() and time.time() - start_time < 5:  # 5 second timeout
+                sleep(0.1)
                 
             print("Main thread: Cleaning up PyGame and Live2D")
             pygame.quit()
             live2d.dispose()
             print("Main thread: Shutdown complete")
 
+
+
+        
+
+
     def run_video(self):
         """Main video loop - must run in main thread"""
-        self.get_expression_names(self.model_path)
-        self.get_motion_names(self.model_path)
-        self.get_model_params()
 
         clock = pygame.time.Clock()
 
@@ -251,8 +344,8 @@ class Agent:
                     self.running = False
 
 
-                if event.type == pygame.MOUSEMOTION:
-                    self.model.Drag(*pygame.mouse.get_pos())
+                # if event.type == pygame.MOUSEMOTION:
+                #     self.model.Drag(*pygame.mouse.get_pos())
 
             # Check for messages from the LLM thread
             try:
@@ -339,6 +432,8 @@ class Agent:
 
             self.model.SetOffset(self.dx, self.dy)
             self.model.SetScale(self.scale)
+            # self.model.HitPart(100, 200, False)
+            self.model.Drag(self.look_dx, self.look_dy)
             live2d.clearBuffer(0.0, 0.0, 0.0, 0.0)
             self.model.Draw()
 
@@ -359,5 +454,5 @@ if __name__ == "__main__":
 
     
 
-    agt = Agent("Resources/Mao", "Mao.model3.json")
+    agt = Agent("Resources/Mao/Mao.model3.json")
     agt.run_agent()
