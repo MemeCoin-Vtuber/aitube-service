@@ -24,14 +24,14 @@ def main():
 
     model = live2d.LAppModel()
 
-    model.LoadModelJson(os.path.join("Mao/Mao.model3.json"))
+    model.LoadModelJson(os.path.join("Resources/Mao/Mao.model3.json"))
 
     model.Resize(*display)
 
     running = True
     dx, dy = 0.0, 0.0
     scale = 1.0
-    audio_path = os.path.join("audio1.wav")
+    audio_path = os.path.join("Resources/audio4.wav")
 
     wav_handler = WavHandler()
     lip_sync_multiplier = 10.0  # Increase multiplier for more sensitivity
@@ -82,11 +82,11 @@ def main():
                     current_top_clicked_part_id = hit_parts[0]
 
                 if event.button == 1:
-                    model.SetExpression("exp_06")
+                    model.SetExpression("enthusiactic_joyfull")
                     model.StartRandomMotion("TapBody", 3)
 
                 if event.button == 3:
-                    model.SetExpression("exp_06")
+                    model.SetExpression("enthusiactic_joyfull")
                     model.StartRandomMotion("TapBody", 3)
                     pygame.mixer.music.load(audio_path)
                     pygame.mixer.music.play()
@@ -116,9 +116,10 @@ def main():
                     model.ResetExpression()
 
                 elif event.key == pygame.K_l:
-                    pygame.mixer.music.load(audio_path)
-                    pygame.mixer.music.play()
-                    wav_handler.Start(audio_path)
+                    model.SetExpression("enthusiactic_joyfull")
+                    # pygame.mixer.music.load(audio_path)
+                    # pygame.mixer.music.play()
+                    # wav_handler.Start(audio_path)
 
                 elif event.key == pygame.K_SPACE:
                     blink = not model.GetAutoBlinkEnable()
