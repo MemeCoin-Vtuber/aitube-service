@@ -117,21 +117,21 @@ class Agent:
         # Acquire mutex before renaming file
         with self.audio_mutex:
             # If there's an old output file, remove it
-            if os.path.exists("output_jenn.wav"):
+            if os.path.exists("output.wav"):
                 try:
-                    os.remove("output_jenn.wav")
+                    os.remove("output.wav")
                 except:
                     pass
             
             # Rename temp file to final filename
             try:
-                os.rename(temp_filename, "output_jenn.wav")
+                os.rename(temp_filename, "output.wav")
             except Exception as e:
                 print(f"Error renaming audio file: {e}")
                 # If rename fails, at least return the temp file
                 return temp_filename
                 
-        return "output_jenn.wav"
+        return "output.wav"
 
     def generate_expression(self, content):
         response = self.llm.invoke(f"""
@@ -250,76 +250,9 @@ class Agent:
                 if event.type == pygame.QUIT:
                     self.running = False
 
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    x, y = pygame.mouse.get_pos()
-
-                    hit_parts = self.model.HitPart(x, y, False)
-                    if hit_parts:
-                        self.current_top_clicked_part_id = hit_parts[0]
-
-                    if event.button == 1:
-                        self.model.SetExpression("exp_06")
-                        self.model.StartRandomMotion("TapBody", 3)
-
-                    if event.button == 3:
-                        self.model.SetExpression("exp_06")
-                        self.model.StartRandomMotion("TapBody", 3)
-                        if self.audio_path:
-                            with self.audio_mutex:
-                                pygame.mixer.music.load(self.audio_path)
-                                pygame.mixer.music.play()
-                                self.wav_handler.Start(self.audio_path)
 
                 if event.type == pygame.MOUSEMOTION:
                     self.model.Drag(*pygame.mouse.get_pos())
-
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_LEFT:
-                        self.dx -= 0.1
-                    elif event.key == pygame.K_RIGHT:
-                        self.dx += 0.1
-                    elif event.key == pygame.K_UP:
-                        self.dy += 0.1
-                    elif event.key == pygame.K_DOWN:
-                        self.dy -= 0.1
-                    elif event.key == pygame.K_i:
-                        self.scale += 0.1
-                    elif event.key == pygame.K_u:
-                        self.scale -= 0.1
-
-                    elif event.key == pygame.K_q:
-                        self.model.StartMotion("TapBody", 1, 3)
-                    elif event.key == pygame.K_w:
-                        self.model.StartMotion("TapBody", 2, 3)
-                    elif event.key == pygame.K_e:
-                        self.model.StartMotion("TapBody", 3, 3)
-                    elif event.key == pygame.K_r:
-                        self.model.StartMotion("TapBody", 4, 3)
-                    elif event.key == pygame.K_t:
-                        self.model.StartMotion("TapBody", 5, 3)
-                    elif event.key == pygame.K_y:
-                        self.model.StartMotion("TapBody", 6, 3)
-                    elif event.key == pygame.K_a:
-                        self.model.StartMotion("TapBody", 7, 3)
-                    elif event.key == pygame.K_s:
-                        self.model.StartMotion("TapBody", 8, 3)
-
-                    elif event.key == pygame.K_r:
-                        self.model.StopAllMotions()
-                        self.model.ResetPose()
-                    elif event.key == pygame.K_e:
-                        self.model.ResetExpression()
-
-                    elif event.key == pygame.K_l:
-                        if self.audio_path:
-                            with self.audio_mutex:
-                                self.wav_handler.Start(self.audio_path)
-
-                    elif event.key == pygame.K_SPACE:
-                        blink = not self.model.GetAutoBlinkEnable()
-                        breath = not self.model.GetAutoBreathEnable()
-                        self.model.SetAutoBlinkEnable(blink)
-                        self.model.SetAutoBreathEnable(breath)
 
             # Check for messages from the LLM thread
             try:
@@ -403,14 +336,6 @@ class Agent:
                 self.audio_in_use = False
                 self.audio_done.set()  # Signal that audio is done
                 self.model.SetExpression("normal")
-
-            if self.current_top_clicked_part_id is not None:
-                try:
-                    idx = self.part_ids.index(self.current_top_clicked_part_id)
-                    self.model.SetPartOpacity(idx, 0.7)
-                    self.model.SetPartMultiplyColor(idx, 0.0, 0.0, 1.0, 0.9)
-                except:
-                    pass
 
             self.model.SetOffset(self.dx, self.dy)
             self.model.SetScale(self.scale)
