@@ -6,7 +6,9 @@ import queue
 import time
 import json
 import random
+import cv2
 
+from enum import Enum
 from pygame.locals import *
 
 from live2d.utils import log
@@ -18,9 +20,17 @@ from time import sleep
 from pyht import Client
 from pyht.client import TTSOptions
 from smallest import Smallest
-
+from elevenlabs import ElevenLabs
 
 from prompts import BIO_PROMPT, LOOK_AROUND_PROMPT, GENERATE_EXPRESSION_PROMPT
+from speech_generators import generate_speech_elevenlabs, generate_speech_playht, generate_speech_smallest_ai
+
+class TTS_Options(Enum):
+
+    ELEVENLABS = "elevenlabs"
+    PLAYHT = "playht"
+    SMALLESTAI = "smallestai"
+
 
 class Agent:
 
@@ -35,7 +45,7 @@ class Agent:
     current_expression = None
 
 
-    def __init__(self, model_path: str, display: list = (1000, 1700)):
+    def __init__(self, model_path: str, tts_option: TTS_Options, display: list = (1000, 1700)):
         
         self.display = display
         self.model_path = model_path
@@ -48,6 +58,9 @@ class Agent:
         self.current_top_clicked_part_id = None
         self.part_ids = []
         self.prompt_response = "Random movement"
+        self.fps = 30
+        self.frame_count = 300
+        self.tts_option = tts_option
         
         self.look = {
             "left": (0, display[1]/2), 
@@ -56,8 +69,6 @@ class Agent:
             "up": (display[0]/2, display[1]),
             "straight": (display[0]/2,display[1]/2)
         }
-
-        
 
         # Mutex for audio file access
         self.audio_mutex = threading.Lock()
@@ -77,15 +88,30 @@ class Agent:
         self.model = live2d.LAppModel()
         self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", api_key=os.environ["GEMINI_API_KEY"])
         self.wav_handler = WavHandler()
-        # self.playht_client = Client(
-        #     user_id=os.environ["PLAY_HT_USER_ID"],
-        #     api_key=os.environ["PLAY_HT_API_KEY"],
-        # )
-        self.smallest_ai_client = Smallest(api_key=os.environ["SMALLEST_API_KEY"])
-
 
         self.model.LoadModelJson(os.path.join(model_path))
         self.model.Resize(*display)
+
+
+        # Setup TTS Models
+
+        if tts_option == TTS_Options.ELEVENLABS:
+            self.client = ElevenLabs(
+                api_key=os.environ["ELEVENLABS_API_KEY"],
+            )
+        elif tts_option == TTS_Options.PLAYHT:
+            self.client = Client(
+                user_id=os.environ["PLAY_HT_USER_ID"],
+                api_key=os.environ["PLAY_HT_API_KEY"]
+            )
+        elif tts_option == TTS_Options.SMALLESTAI:
+            self.client = Smallest(
+                api_key=os.environ["SMALLEST_API_KEY"],
+                model=os.environ["SMALLEST_MODEL"],
+                voice_id=os.environ["SMALLEST_VOICE_ID"]
+            )
+        else:
+            raise ValueError("Invalid tts option given")
 
 
     def get_expression_names(self):
@@ -138,11 +164,27 @@ class Agent:
         # Create a temporary filename to avoid conflicts
         # temp_filename = f"output_temp_{int(time.time())}.wav"
         temp_filename = f"output_temp.wav"
-        
-        self.smallest_ai_client.synthesize(
-            text=text,
-            save_as=temp_filename
-        )
+
+        if self.tts_option == TTS_Options.ELEVENLABS:
+            generate_speech_elevenlabs(
+                self.client, 
+                text,
+                os.environ["ELEVENLABS_VOICE_ID"],
+                os.environ["ELEVENLABS_MODEL_ID"] 
+            )
+        elif self.tts_option == TTS_Options.PLAYHT:
+            generate_speech_playht(
+                self.client,
+                text,
+                os.environ["PLAYHT_VOICE_MANIFEST_URL"]
+            )
+        elif self.tts_option == TTS_Options.SMALLESTAI:
+            generate_speech_smallest_ai(
+                self.client,
+                text
+            )
+        else:
+            raise ValueError("Invalid TTS option passed")
         
         # Acquire mutex before renaming file
         with self.audio_mutex:
@@ -452,7 +494,10 @@ if __name__ == "__main__":
     os.environ["PLAY_HT_API_KEY"] = os.getenv("PLAY_HT_API_KEY")
     os.environ["SMALLEST_API_KEY"] = os.getenv("SMALLEST_API_KEY")
 
-    
+    os.environ["SMALLEST_API_KEY"] = os.getenv("SMALLEST_API_KEY")
+    os.environ["SMALLEST_API_KEY"] = os.getenv("SMALLEST_API_KEY")
 
-    agt = Agent("Resources/Mao/Mao.model3.json")
+
+    tts_option = TTS_Options(os.getenv("TTS_OPTION"))
+    agt = Agent("Resources/Mao/Mao.model3.json",tts_option)
     agt.run_agent()
