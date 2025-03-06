@@ -7,9 +7,12 @@ import time
 import json
 import random
 import cv2
-
+import numpy as np
+from  OpenGL.GL import *
 from enum import Enum
 from pygame.locals import *
+import wave
+import subprocess
 
 from live2d.utils import log
 from live2d.utils.lipsync import WavHandler
@@ -25,12 +28,23 @@ from elevenlabs import ElevenLabs
 from prompts import BIO_PROMPT, LOOK_AROUND_PROMPT, GENERATE_EXPRESSION_PROMPT
 from speech_generators import generate_speech_elevenlabs, generate_speech_playht, generate_speech_smallest_ai
 
+
+
 class TTS_Options(Enum):
 
     ELEVENLABS = "elevenlabs"
     PLAYHT = "playht"
     SMALLESTAI = "smallestai"
 
+
+
+def capture_frame(width, height):
+    """Capture the current OpenGL frame"""
+    glReadBuffer(GL_FRONT)
+    pixels = glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE)
+    image = np.frombuffer(pixels, dtype=np.uint8).reshape(height, width, 3)
+    image = np.flipud(image)  # OpenGL has origin at bottom left
+    return cv2.cvtColor(image, cv2.COLOR_RGB2BGR)  # Convert to BGR for OpenCV
 
 class Agent:
 
@@ -45,7 +59,7 @@ class Agent:
     current_expression = None
 
 
-    def __init__(self, model_path: str, tts_option: TTS_Options, display: list = (1000, 1700)):
+    def __init__(self, model_path: str, tts_option: TTS_Options, youtube_key: str, display: tuple = (700, 700), speak=True):
         
         self.display = display
         self.model_path = model_path
@@ -61,6 +75,8 @@ class Agent:
         self.fps = 30
         self.frame_count = 300
         self.tts_option = tts_option
+        self.speak = speak
+        self.youtube_url = f"rtmp://a.rtmp.youtube.com/live2/{youtube_key}"
         
         self.look = {
             "left": (0, display[1]/2), 
@@ -70,6 +86,40 @@ class Agent:
             "straight": (display[0]/2,display[1]/2)
         }
 
+        ffmpeg_cmd = [
+            'ffmpeg',
+            '-y',
+            
+            # Video Input
+            '-f', 'rawvideo',
+            '-pix_fmt', 'bgr24',
+            '-s', f'{self.display[0]}x{self.display[1]}',
+            '-r', str(self.fps),
+            '-i', '-',  # Read raw video from stdin
+
+            '-f', 'lavfi',
+            '-i', 'anullsrc=r=44100:cl=stereo',
+            
+            # Video Encoding
+            '-c:v', 'libx264',
+            '-pix_fmt', 'yuv420p',
+            '-preset', 'fast',
+            '-b:v', '2500k',
+            '-maxrate', '2500k',
+            '-bufsize', '5000k',
+            '-g', str(self.fps * 2),
+            
+            # Audio Encoding
+            '-c:a', 'aac',
+            '-b:a', '128k',
+            
+            # Output Format (FLV for YouTube)
+            '-f', 'flv',
+            self.youtube_url
+        ]
+
+        self.ffmpeg_process = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
+
         # Mutex for audio file access
         self.audio_mutex = threading.Lock()
         self.audio_in_use = False
@@ -78,6 +128,11 @@ class Agent:
         pygame.init()
         pygame.mixer.init()
         live2d.init()
+
+        self.surface = pygame.Surface(display)
+
+        fourcc = cv2.VideoWriter.fourcc(*"mp4v")
+        self.video_writer = cv2.VideoWriter("output.mp4", fourcc, self.fps, display)
 
         pygame.display.set_mode(self.display, DOUBLEBUF | OPENGL)
         pygame.display.set_caption("Live2D Viewer")
@@ -113,6 +168,14 @@ class Agent:
         else:
             raise ValueError("Invalid tts option given")
 
+    def get_audio_duration(self, audio_file):
+        """Get the duration of an audio file in seconds"""
+        with wave.open(audio_file, 'rb') as wav_file:
+            frames = wav_file.getnframes()
+            rate = wav_file.getframerate()
+            duration = frames / float(rate)
+            return duration
+
 
     def get_expression_names(self):
         
@@ -120,7 +183,7 @@ class Agent:
         
         with open(self.model_path, "r") as file:
             data = json.load(file)
-            expressions: list[dict] = data["FileReferences"]["Expressions"]
+            expressions: list[dict] = data["FileReferences"].get("Expressions", [])
             expression_names = [expression["Name"] for expression in expressions]
             self.expression_names = expression_names
 
@@ -326,7 +389,9 @@ class Agent:
         self.running = True
         llm_thread = threading.Thread(target=self.llm_worker)
         llm_thread.daemon = True  # Make thread daemon so it exits when main thread exits
-        llm_thread.start()
+
+        if self.speak:
+            llm_thread.start()
 
         expression_thread = threading.Thread(target=self.look_around_worker)
         expression_thread.daemon = True
@@ -480,6 +545,21 @@ class Agent:
             self.model.Draw()
 
             pygame.display.flip()
+
+            frame = capture_frame(self.display[0], self.display[1])
+            self.ffmpeg_process.stdin.write(frame.tobytes())
+
+
+            # self.video_writer.write(frame)
+
+            # self.frame_count += 1
+            # if self.frame_count % self.fps == 0:
+            #     seconds = self.frame_count // self.fps
+            #     print(f"Recorded {seconds} seconds of video ({self.frame_count} frames)")
+
+            # if self.frame_count > 1500:
+            #     self.video_writer.release()
+
             clock.tick(60)
 
 
@@ -496,8 +576,8 @@ if __name__ == "__main__":
 
     os.environ["SMALLEST_API_KEY"] = os.getenv("SMALLEST_API_KEY")
     os.environ["SMALLEST_API_KEY"] = os.getenv("SMALLEST_API_KEY")
-
+    os.environ["YOUTUBE_STREAM_KEY"] = os.getenv("YOUTUBE_STREAM_KEY")
 
     tts_option = TTS_Options(os.getenv("TTS_OPTION"))
-    agt = Agent("Resources/Mao/Mao.model3.json",tts_option)
+    agt = Agent("Resources/Mao/Mao.model3.json",tts_option, os.environ["YOUTUBE_STREAM_KEY"],speak=False)
     agt.run_agent()
