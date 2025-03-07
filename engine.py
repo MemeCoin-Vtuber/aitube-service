@@ -86,39 +86,9 @@ class Agent:
             "straight": (display[0]/2,display[1]/2)
         }
 
-        ffmpeg_cmd = [
-            'ffmpeg',
-            '-y',
-            
-            # Video Input
-            '-f', 'rawvideo',
-            '-pix_fmt', 'bgr24',
-            '-s', f'{self.display[0]}x{self.display[1]}',
-            '-r', str(self.fps),
-            '-i', '-',  # Read raw video from stdin
 
-            '-f', 'lavfi',
-            '-i', 'anullsrc=r=44100:cl=stereo',
-            
-            # Video Encoding
-            '-c:v', 'libx264',
-            '-pix_fmt', 'yuv420p',
-            '-preset', 'fast',
-            '-b:v', '2500k',
-            '-maxrate', '2500k',
-            '-bufsize', '5000k',
-            '-g', str(self.fps * 2),
-            
-            # Audio Encoding
-            '-c:a', 'aac',
-            '-b:a', '128k',
-            
-            # Output Format (FLV for YouTube)
-            '-f', 'flv',
-            self.youtube_url
-        ]
-
-        self.ffmpeg_process = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
+        self.ffmpeg_process = None
+        self.setup_ffmpeg(use_audio_file=False)
 
         # Mutex for audio file access
         self.audio_mutex = threading.Lock()
@@ -377,6 +347,70 @@ class Agent:
             print("Look selected: ", selected)
             sleep(5)
 
+        
+    def setup_ffmpeg(self, use_audio_file=False):
+        """Sets up the ffmpeg process with either silent audio or an audio file"""
+        
+        print("Initializing FFMPeg")
+        # Kill the current ffmpeg process if it exists
+        if hasattr(self, 'ffmpeg_process') and self.ffmpeg_process:
+            self.ffmpeg_process.terminate()
+            print("FFMPeg Terminated")
+            try:
+                self.ffmpeg_process.wait(timeout=2)
+            except:
+                self.ffmpeg_process.kill()
+        
+        # Build the ffmpeg command
+        ffmpeg_cmd = [
+            'ffmpeg',
+            '-y',
+            
+            # Video Input (from named pipe)
+            '-f', 'rawvideo',
+            '-pix_fmt', 'bgr24',
+            '-s', f'{self.display[0]}x{self.display[1]}',
+            '-r', str(self.fps),
+            '-i', "-",
+        ]
+        
+        # Add audio input based on whether we're using an audio file
+        if use_audio_file and os.path.exists("output.wav"):
+            # Audio input from WAV file
+            ffmpeg_cmd.extend(['-i', "output.wav"])
+        else:
+            # Silent audio input
+            ffmpeg_cmd.extend([
+                '-f', 'lavfi',
+                '-i', 'anullsrc=r=44100:cl=stereo'
+            ])
+        
+        # Add encoding settings and output
+        ffmpeg_cmd.extend([
+            # Video Encoding
+            '-c:v', 'libx264',
+            '-pix_fmt', 'yuv420p',
+            '-preset', 'ultrafast',
+            '-tune', 'zerolatency',
+            '-b:v', '2500k',
+            '-maxrate', '2500k',
+            '-bufsize', '5000k',
+            '-g', str(self.fps * 2),
+            
+            # Audio Encoding
+            '-c:a', 'aac',
+            '-b:a', '128k',
+            
+            # Output Format (FLV for YouTube)
+            '-f', 'flv',
+            self.youtube_url
+        ])
+        
+        # Start the ffmpeg process
+        print(f"Starting ffmpeg process: {'with audio file' if use_audio_file else 'with silent audio'}")
+        self.ffmpeg_process = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
+        
+
     def run_agent(self):
         """Main method that runs everything"""
         print("Starting agent....")
@@ -445,6 +479,9 @@ class Agent:
         clock = pygame.time.Clock()
 
         while self.running:
+
+            frame_start = time.time()
+
             # Process PyGame events
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -468,7 +505,9 @@ class Agent:
                     
                     # Handle in main thread
                     self.model.SetExpression(self.current_expression)
-                    
+
+                    self.setup_ffmpeg(use_audio_file=True)
+
                     # Acquire mutex before accessing audio file
                     with self.audio_mutex:
                         try:
@@ -537,6 +576,8 @@ class Agent:
                 self.audio_done.set()  # Signal that audio is done
                 self.model.SetExpression("normal")
 
+                self.setup_ffmpeg(use_audio_file=False)
+
             self.model.SetOffset(self.dx, self.dy)
             self.model.SetScale(self.scale)
             # self.model.HitPart(100, 200, False)
@@ -546,19 +587,18 @@ class Agent:
 
             pygame.display.flip()
 
-            frame = capture_frame(self.display[0], self.display[1])
-            self.ffmpeg_process.stdin.write(frame.tobytes())
+            if (self.ffmpeg_process != None):
+                frame = capture_frame(self.display[0], self.display[1])
+                self.ffmpeg_process.stdin.write(frame.tobytes())
 
-
-            # self.video_writer.write(frame)
-
-            # self.frame_count += 1
-            # if self.frame_count % self.fps == 0:
-            #     seconds = self.frame_count // self.fps
-            #     print(f"Recorded {seconds} seconds of video ({self.frame_count} frames)")
-
-            # if self.frame_count > 1500:
-            #     self.video_writer.release()
+            # FPS limiting
+            frame_end = time.time()
+            frame_time = frame_end - frame_start
+            target_frame_time = 1.0 / self.fps
+            
+            if frame_time < target_frame_time:
+                time.sleep(target_frame_time - frame_time)
+                
 
             clock.tick(60)
 
@@ -579,5 +619,5 @@ if __name__ == "__main__":
     os.environ["YOUTUBE_STREAM_KEY"] = os.getenv("YOUTUBE_STREAM_KEY")
 
     tts_option = TTS_Options(os.getenv("TTS_OPTION"))
-    agt = Agent("Resources/Mao/Mao.model3.json",tts_option, os.environ["YOUTUBE_STREAM_KEY"],speak=False)
+    agt = Agent("Resources/Mao/Mao.model3.json",tts_option, os.environ["YOUTUBE_STREAM_KEY"],speak=True)
     agt.run_agent()
