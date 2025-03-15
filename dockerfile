@@ -44,17 +44,17 @@ RUN python3 -m venv venv
 ENV PATH="/app/venv/bin:$PATH"
 RUN git clone https://github.com/Arkueid/live2d-py --depth 1
 WORKDIR /app/live2d-py
-RUN cmake .
-RUN make
+RUN make .
+RUN cmake
 RUN pip install .
+RUN pip install live2d-py
+
+WORKDIR /app
 
 
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Install live2d-py
-RUN pip install live2d-py
 
 # Copy project files
 COPY . .
