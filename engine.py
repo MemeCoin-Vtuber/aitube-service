@@ -87,7 +87,7 @@ class Agent:
 
 
         self.ffmpeg_process = None
-        self.setup_ffmpeg(use_audio_file=False)
+        # self.setup_ffmpeg(use_audio_file=False)
 
         # Mutex for audio file access
         self.audio_mutex = threading.Lock()
@@ -305,7 +305,7 @@ class Agent:
             # selected = random.choices(groups)
 
             # self.model.StartRandomMotion(selected[0], 3)
-            self.model.StartMotion("Idle", random.randint(0,self.motion_names["Idle"]))
+            self.model.StartMotion("Idle", random.randint(0,self.motion_names["Idle"]),1)
 
             sleep(random.randint(8,20))
 
@@ -518,7 +518,7 @@ class Agent:
                             pygame.mixer.music.play()
                             self.wav_handler.Start(self.audio_path)
                             
-                            self.setup_ffmpeg(use_audio_file=True)
+                            # self.setup_ffmpeg(use_audio_file=True)
                             print(f"Main thread: Playing audio {self.audio_path}")
                         except Exception as e:
                             print(f"Main thread: Error playing audio: {e}")
@@ -580,16 +580,17 @@ class Agent:
                 self.audio_done.set()  # Signal that audio is done
                 self.model.SetExpression("normal")
 
-                self.setup_ffmpeg(use_audio_file=False)
-            
-            if self.display_bg:
-                self.background.Draw()
+                # self.setup_ffmpeg(use_audio_file=False)
+        
 
             self.model.SetOffset(self.dx, self.dy)
             self.model.SetScale(self.scale)
             # self.model.HitPart(100, 200, False)
             self.model.Drag(self.look_dx, self.look_dy)
             live2d.clearBuffer(0.0, 0.0, 0.0, 0.0)
+            if self.display_bg:
+                self.background.Draw()
+                self.model.Update()
             self.model.Draw()
 
             pygame.display.flip()
@@ -626,5 +627,5 @@ if __name__ == "__main__":
     os.environ["YOUTUBE_STREAM_KEY"] = os.getenv("YOUTUBE_STREAM_KEY")
 
     tts_option = TTS_Options(os.getenv("TTS_OPTION"))
-    agt = Agent("Resources/Mao/Mao.model3.json",tts_option, os.environ["YOUTUBE_STREAM_KEY"], background=False, speak=True)
+    agt = Agent("Resources/Mao/Mao.model3.json",tts_option, os.environ["YOUTUBE_STREAM_KEY"], background=True, speak=False)
     agt.run_agent()
