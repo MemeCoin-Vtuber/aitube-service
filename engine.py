@@ -14,7 +14,6 @@ from pygame.locals import *
 import wave
 import subprocess
 
-from live2d.utils import log
 from live2d.utils.lipsync import WavHandler
 
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -28,7 +27,7 @@ from elevenlabs import ElevenLabs
 from prompts import BIO_PROMPT, LOOK_AROUND_PROMPT, GENERATE_EXPRESSION_PROMPT
 from speech_generators import generate_speech_elevenlabs, generate_speech_playht, generate_speech_smallest_ai
 
-
+from background import Background
 
 class TTS_Options(Enum):
 
@@ -59,7 +58,7 @@ class Agent:
     current_expression = None
 
 
-    def __init__(self, model_path: str, tts_option: TTS_Options, youtube_key: str, display: tuple = (700, 700), speak=True):
+    def __init__(self, model_path: str, tts_option: TTS_Options, youtube_key: str, display: tuple = (700, 700), background=False, speak=True):
         
         self.display = display
         self.model_path = model_path
@@ -99,21 +98,25 @@ class Agent:
         pygame.mixer.init()
         live2d.init()
 
-        self.surface = pygame.Surface(display)
+        
+        
 
-        fourcc = cv2.VideoWriter.fourcc(*"mp4v")
-        self.video_writer = cv2.VideoWriter("output.mp4", fourcc, self.fps, display)
-
-        pygame.display.set_mode(self.display, DOUBLEBUF | OPENGL)
+        self.screen = pygame.display.set_mode(self.display, DOUBLEBUF | OPENGL)
         pygame.display.set_caption("Live2D Viewer")
+
+        self.display_bg = background
+
+        if self.display_bg:
+            self.background = Background(
+                os.path.join("background.png")
+            )
 
         if live2d.LIVE2D_VERSION == 3:
             live2d.glewInit()
 
         self.model = live2d.LAppModel()
-        self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", api_key=os.environ["GEMINI_API_KEY"])
+        self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", api_key=os.environ["GEMINI_API_KEY"])
         self.wav_handler = WavHandler()
-
         self.model.LoadModelJson(os.path.join(model_path))
         self.model.Resize(*display)
 
@@ -285,7 +288,7 @@ class Agent:
                 # Sleep with timeout check to avoid getting stuck
                 start_time = time.time()
                 while time.time() - start_time < 3 and self.running:  # 3 seconds
-                    sleep(10)  # Short sleep to allow for cleaner thread exit
+                    sleep(15)  # Short sleep to allow for cleaner thread exit
                 
                 print("LLM thread: Woke up, starting next iteration")
             except Exception as e:
@@ -299,9 +302,10 @@ class Agent:
 
         while True:
             
-            selected = random.choices(groups)
+            # selected = random.choices(groups)
 
-            self.model.StartRandomMotion(selected[0], 3)
+            # self.model.StartRandomMotion(selected[0], 3)
+            self.model.StartMotion("Idle", random.randint(0,self.motion_names["Idle"]))
 
             sleep(random.randint(8,20))
 
@@ -506,8 +510,6 @@ class Agent:
                     # Handle in main thread
                     self.model.SetExpression(self.current_expression)
 
-                    self.setup_ffmpeg(use_audio_file=True)
-
                     # Acquire mutex before accessing audio file
                     with self.audio_mutex:
                         try:
@@ -515,6 +517,8 @@ class Agent:
                             self.audio_in_use = True
                             pygame.mixer.music.play()
                             self.wav_handler.Start(self.audio_path)
+                            
+                            self.setup_ffmpeg(use_audio_file=True)
                             print(f"Main thread: Playing audio {self.audio_path}")
                         except Exception as e:
                             print(f"Main thread: Error playing audio: {e}")
@@ -577,6 +581,9 @@ class Agent:
                 self.model.SetExpression("normal")
 
                 self.setup_ffmpeg(use_audio_file=False)
+            
+            if self.display_bg:
+                self.background.Draw()
 
             self.model.SetOffset(self.dx, self.dy)
             self.model.SetScale(self.scale)
@@ -598,7 +605,7 @@ class Agent:
             
             if frame_time < target_frame_time:
                 time.sleep(target_frame_time - frame_time)
-                
+
 
             clock.tick(60)
 
@@ -619,5 +626,5 @@ if __name__ == "__main__":
     os.environ["YOUTUBE_STREAM_KEY"] = os.getenv("YOUTUBE_STREAM_KEY")
 
     tts_option = TTS_Options(os.getenv("TTS_OPTION"))
-    agt = Agent("Resources/Mao/Mao.model3.json",tts_option, os.environ["YOUTUBE_STREAM_KEY"],speak=True)
+    agt = Agent("Resources/Mao/Mao.model3.json",tts_option, os.environ["YOUTUBE_STREAM_KEY"], background=False, speak=True)
     agt.run_agent()
