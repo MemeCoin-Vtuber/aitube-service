@@ -1,9 +1,11 @@
 FROM ubuntu:24.04
 
+# Debug: check what ALSA packages are available
+RUN apt-get update && apt-cache search alsa
 
-# Install system dependencies and add Deadsnakes PPA
+# Install system dependencies
 RUN apt-get update && \
-    apt-get update && apt-get install -y \
+    apt-get install -y \
     python3 python3-pip \
     ffmpeg \
     libglib2.0-0 \
@@ -27,11 +29,14 @@ RUN apt-get update && \
     freeglut3-dev \
     mesa-common-dev \ 
     python3-wheel \ 
-    python3-venv
-
-RUN apt-get update && apt-get install -y \
-    ninja-build 
-
+    python3-venv \
+    ninja-build \
+    # Try alternative ALSA-related packages
+    alsa-base \
+    alsa-utils \
+    pulseaudio \
+    pulseaudio-utils \
+    libpulse-dev
 
 # Upgrade pip and install dependencies
 RUN pip install --upgrade --force-reinstall setuptools ninja --break-system-packages
@@ -39,31 +44,40 @@ RUN pip install --upgrade --force-reinstall setuptools ninja --break-system-pack
 # Create app directory
 WORKDIR /app
 
-# Clone live2d-py repository
+# Create virtual environment
 RUN python3 -m venv venv
 ENV PATH="/app/venv/bin:$PATH"
-RUN git clone https://github.com/Arkueid/live2d-py --depth 1
-WORKDIR /app/live2d-py
-RUN make .
-RUN cmake
-RUN pip install .
-RUN pip install live2d-py
 
+# Clone the modified live2d-py repository
+RUN git clone https://github.com/thedudeontitan/live2d-py --depth 1
+WORKDIR /app/live2d-py
+
+# Build and install live2d-py
+RUN mkdir -p build && \
+    cd build && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DPYTHON_INSTALLATION_PATH=/usr/bin && \
+    cmake --build . --config Release && \
+    cd .. && \
+    pip install -e .
+
+# Go back to app directory
 WORKDIR /app
 
-
-# Install Python dependencies
+# Copy project files
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
+# Copy the rest of the application
 COPY . .
 
 # Create required directories
 RUN mkdir -p Resources
 
+# Set environment variables to use dummy audio
+ENV SDL_AUDIODRIVER=dummy
+ENV AUDIODEV=/dev/null
+
 # Set display variable for X virtual framebuffer
 ENV DISPLAY=:99
 
-# Start Xvfb, then run the application
 CMD ["sh", "-c", "Xvfb :99 -screen 0 1280x720x24 -ac & python engine.py"]
