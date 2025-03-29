@@ -39,11 +39,18 @@ class TTS_Options(Enum):
 
 def capture_frame(width, height):
     """Capture the current OpenGL frame"""
-    glReadBuffer(GL_FRONT)
-    pixels = glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE)
-    image = np.frombuffer(pixels, dtype=np.uint8).reshape(height, width, 3)
-    image = np.flipud(image)  # OpenGL has origin at bottom left
-    return cv2.cvtColor(image, cv2.COLOR_RGB2BGR)  # Convert to BGR for OpenCV
+    try:
+        # Make sure all OpenGL commands are completed before reading pixels
+        glFinish()
+        # Read from the back buffer instead of front buffer
+        glReadBuffer(GL_BACK)
+        pixels = glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE)
+        image = np.frombuffer(pixels, dtype=np.uint8).reshape(height, width, 3)
+        image = np.flipud(image)  # OpenGL has origin at bottom left
+        return cv2.cvtColor(image, cv2.COLOR_RGB2BGR)  # Convert to BGR for OpenCV
+    except Exception as e:
+        print(f"Error capturing frame: {e}")
+        return np.zeros((height, width, 3), dtype=np.uint8)
 
 class Agent:
 
@@ -58,7 +65,7 @@ class Agent:
     current_expression = None
 
 
-    def __init__(self, model_path: str, tts_option: TTS_Options, youtube_key: str, display: tuple = (700, 700), background=False, speak=True):
+    def __init__(self, model_path: str, tts_option: TTS_Options, youtube_key: str, display: tuple = (1920, 1080), background=False, speak=True):
         
         self.display = display
         self.model_path = model_path
@@ -76,6 +83,7 @@ class Agent:
         self.tts_option = tts_option
         self.speak = speak
         self.youtube_url = f"rtmp://a.rtmp.youtube.com/live2/{youtube_key}"
+        self.ffmpeg_error_count = 0
         
         self.look = {
             "left": (0, display[1]/2), 
@@ -87,7 +95,7 @@ class Agent:
 
 
         self.ffmpeg_process = None
-        # self.setup_ffmpeg(use_audio_file=False)
+        self.setup_ffmpeg(use_audio_file=False)
 
         # Mutex for audio file access
         self.audio_mutex = threading.Lock()
@@ -518,7 +526,7 @@ class Agent:
                             pygame.mixer.music.play()
                             self.wav_handler.Start(self.audio_path)
                             
-                            # self.setup_ffmpeg(use_audio_file=True)
+                            self.setup_ffmpeg(use_audio_file=True)
                             print(f"Main thread: Playing audio {self.audio_path}")
                         except Exception as e:
                             print(f"Main thread: Error playing audio: {e}")
@@ -580,14 +588,17 @@ class Agent:
                 self.audio_done.set()  # Signal that audio is done
                 self.model.SetExpression("normal")
 
-                # self.setup_ffmpeg(use_audio_file=False)
+                self.setup_ffmpeg(use_audio_file=False)
         
 
             self.model.SetOffset(self.dx, self.dy)
             self.model.SetScale(self.scale)
             # self.model.HitPart(100, 200, False)
             self.model.Drag(self.look_dx, self.look_dy)
-            live2d.clearBuffer(0.0, 0.0, 0.0, 0.0)
+            
+            # Change alpha to 1.0 instead of 0.0 (not transparent)
+            live2d.clearBuffer(0.0, 0.0, 0.0, 1.0)
+            
             if self.display_bg:
                 self.background.Draw()
                 self.model.Update()
@@ -595,9 +606,21 @@ class Agent:
 
             pygame.display.flip()
 
-            if (self.ffmpeg_process != None):
-                frame = capture_frame(self.display[0], self.display[1])
-                self.ffmpeg_process.stdin.write(frame.tobytes())
+            if self.ffmpeg_process is not None and self.ffmpeg_process.poll() is None:
+                try:
+                    # Ensure rendering is complete before capture
+                    glFinish()
+                    frame = capture_frame(self.display[0], self.display[1])
+                    self.ffmpeg_process.stdin.write(frame.tobytes())
+                except Exception as e:
+                    print(f"Error sending frame to ffmpeg: {e}")
+                    # If we encounter too many errors, restart ffmpeg
+                    if self.ffmpeg_error_count > 10:
+                        print("Too many ffmpeg errors, restarting the process")
+                        self.setup_ffmpeg(use_audio_file=self.audio_in_use)
+                        self.ffmpeg_error_count = 0
+                    else:
+                        self.ffmpeg_error_count += 1
 
             # FPS limiting
             frame_end = time.time()
@@ -627,5 +650,5 @@ if __name__ == "__main__":
     os.environ["YOUTUBE_STREAM_KEY"] = os.getenv("YOUTUBE_STREAM_KEY")
 
     tts_option = TTS_Options(os.getenv("TTS_OPTION"))
-    agt = Agent("Resources/Mao/Mao.model3.json",tts_option, os.environ["YOUTUBE_STREAM_KEY"], background=True, speak=False)
+    agt = Agent("Resources/miku_pro_jp/runtime/miku_sample_t04.model3.json",tts_option, os.environ["YOUTUBE_STREAM_KEY"], background=True, speak=True)
     agt.run_agent()

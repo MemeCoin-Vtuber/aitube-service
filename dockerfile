@@ -36,7 +36,22 @@ RUN apt-get update && \
     alsa-utils \
     pulseaudio \
     pulseaudio-utils \
-    libpulse-dev
+    libpulse-dev \
+    # Add these packages for OpenGL support in headless environment
+    x11-xserver-utils \
+    libglvnd0 \
+    libglx0 \
+    libegl1 \
+    libxcb1 \
+    libxcb-glx0 \
+    libxcb-dri2-0 \
+    libxcb-dri3-0 \
+    libxcb-present0 \
+    libxcb-sync1 \
+    libxxf86vm1 \
+    libdrm2 \
+    libxkbcommon0 \
+    libegl-mesa0
 
 # Upgrade pip and install dependencies
 RUN pip install --upgrade --force-reinstall setuptools ninja --break-system-packages
@@ -77,7 +92,11 @@ RUN mkdir -p Resources
 ENV SDL_AUDIODRIVER=dummy
 ENV AUDIODEV=/dev/null
 
-# Set display variable for X virtual framebuffer
+# Set environment variables for OpenGL to run in Xvfb
 ENV DISPLAY=:99
+ENV MESA_GL_VERSION_OVERRIDE=3.3
+ENV LIBGL_ALWAYS_SOFTWARE=1
+ENV SDL_VIDEODRIVER=x11
 
-CMD ["sh", "-c", "Xvfb :99 -screen 0 1280x720x24 -ac & python engine.py"]
+# Start Xvfb with proper configuration and wait for it to initialize before running the Python app
+CMD ["sh", "-c", "Xvfb :99 -screen 0 1280x720x24 -ac & sleep 2 && python engine.py"]
