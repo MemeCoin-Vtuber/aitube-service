@@ -7,6 +7,7 @@ import OpenGL.GL as GL
 from PIL import Image
 import numpy as np
 
+
 def compile_shader(shader_src, shader_type):
     shader = GL.glCreateShader(shader_type)
     GL.glShaderSource(shader, shader_src)
