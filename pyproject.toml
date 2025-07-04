@@ -1,0 +1,20 @@
+[project]
+name = "aitube-service"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "dotenv>=0.9.9",
+    "elevenlabs>=2.6.0",
+    "langchain>=0.3.26",
+    "langchain-google-genai>=2.1.6",
+    "langchain-openai>=0.3.27",
+    "live2d-py>=0.5.3.4",
+    "opencv-python>=4.11.0.86",
+    "pyaudio>=0.2.14",
+    "pygame>=2.6.1",
+    "pyht>=0.1.14",
+    "resources>=0.0.1",
+    "staty>=1.2.4",
+]

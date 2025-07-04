@@ -1,0 +1,23 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "Goldfish_Live2D_V00.moc3",
+		"Textures": [
+			"Goldfish_Live2D_V00.2048/texture_00.png"
+		],
+		"Physics": "Goldfish_Live2D_V00.physics3.json",
+		"DisplayInfo": "Goldfish_Live2D_V00.cdi3.json"
+	},
+	"Groups": [
+		{
+			"Target": "Parameter",
+			"Name": "LipSync",
+			"Ids": []
+		},
+		{
+			"Target": "Parameter",
+			"Name": "EyeBlink",
+			"Ids": []
+		}
+	]
+}

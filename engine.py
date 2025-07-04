@@ -17,6 +17,8 @@ import subprocess
 from live2d.utils.lipsync import WavHandler
 
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
+
 from time import sleep
 
 from pyht import Client
@@ -65,7 +67,7 @@ class Agent:
     current_expression = None
 
 
-    def __init__(self, model_path: str, tts_option: TTS_Options, youtube_key: str, display: tuple = (1920, 1080), background=False, speak=True):
+    def __init__(self, model_path: str, tts_option: TTS_Options, youtube_key: str, display: tuple = (720, 1280), background=False, speak=True):
         
         self.display = display
         self.model_path = model_path
@@ -95,7 +97,7 @@ class Agent:
 
 
         self.ffmpeg_process = None
-        self.setup_ffmpeg(use_audio_file=False)
+        # self.setup_ffmpeg(use_audio_file=False)
 
         # Mutex for audio file access
         self.audio_mutex = threading.Lock()
@@ -123,7 +125,8 @@ class Agent:
             live2d.glewInit()
 
         self.model = live2d.LAppModel()
-        self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", api_key=os.environ["GEMINI_API_KEY"])
+        # self.llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", api_key=os.environ["GEMINI_API_KEY"])
+        self.llm = ChatOpenAI(model="gpt-3.5-turbo", api_key=os.environ["OPENAI_API_KEY"])
         self.wav_handler = WavHandler()
         self.model.LoadModelJson(os.path.join(model_path))
         self.model.Resize(*display)
@@ -164,7 +167,8 @@ class Agent:
         
         with open(self.model_path, "r") as file:
             data = json.load(file)
-            expressions: list[dict] = data["FileReferences"].get("Expressions", [])
+            file_references = data.get("FileReferences", {})
+            expressions = file_references.get("Expressions", [])
             expression_names = [expression["Name"] for expression in expressions]
             self.expression_names = expression_names
 
@@ -174,7 +178,7 @@ class Agent:
         
         with open(self.model_path, "r") as file:
             data = json.load(file)
-            motion_groups: dict = data["FileReferences"]["Motions"]
+            motion_groups = data.get("FileReferences", {}).get("Motions", {})
             for group in motion_groups.keys():
                 motion_count = len(data["FileReferences"]["Motions"][group])
                 self.motion_names[group] = motion_count
@@ -526,7 +530,7 @@ class Agent:
                             pygame.mixer.music.play()
                             self.wav_handler.Start(self.audio_path)
                             
-                            self.setup_ffmpeg(use_audio_file=True)
+                            # self.setup_ffmpeg(use_audio_file=True)
                             print(f"Main thread: Playing audio {self.audio_path}")
                         except Exception as e:
                             print(f"Main thread: Error playing audio: {e}")
@@ -541,44 +545,74 @@ class Agent:
             self.model.Update()
 
             # Handle lip sync
+            # Replace the lip sync section in your run_video() method with this:
+
+            # Handle lip sync
             if pygame.mixer.music.get_busy() and self.wav_handler.Update():
                 rms = self.wav_handler.GetRms()
 
+                # Reset mouth parameters to 0 before setting new values
                 for param_id in self.mouth_params:
                     try:
-                        if "openy" in param_id.lower():
-                            self.model.AddParameterValue(param_id, rms * self.lip_sync_multiplier)
-                        elif "form" in param_id.lower():
-                            self.model.AddParameterValue(param_id, rms * 0.5)
+                        self.model.SetParameterValue(param_id, 0.0)
                     except Exception as e:
                         pass
 
+                # Set mouth parameters based on RMS
+                for param_id in self.mouth_params:
+                    try:
+                        if "openy" in param_id.lower():
+                            # Set the mouth opening based on RMS
+                            mouth_value = min(rms * self.lip_sync_multiplier, 1.0)  # Clamp to max 1.0
+                            self.model.SetParameterValue(param_id, mouth_value)
+                        elif "form" in param_id.lower():
+                            form_value = min(rms * 0.5, 1.0)  # Clamp to max 1.0
+                            self.model.SetParameterValue(param_id, form_value)
+                    except Exception as e:
+                        pass
+
+                # Reset vowel parameters to 0 before setting new values
+                for param_id in self.vowel_params:
+                    try:
+                        self.model.SetParameterValue(param_id, 0.0)
+                    except Exception as e:
+                        pass
+
+                # Set vowel parameters based on RMS
                 if self.vowel_params:
                     try:
                         if "ParamA" in self.vowel_params:
-                            self.model.AddParameterValue(
-                                "ParamA", rms * 3.0 if rms > 0.05 else 0
-                            )
+                            value = min(rms * 3.0 if rms > 0.05 else 0, 1.0)
+                            self.model.SetParameterValue("ParamA", value)
                         if "ParamO" in self.vowel_params:
-                            self.model.AddParameterValue(
-                                "ParamO", rms * 2.0 if 0.04 < rms < 0.15 else 0
-                            )
+                            value = min(rms * 2.0 if 0.04 < rms < 0.15 else 0, 1.0)
+                            self.model.SetParameterValue("ParamO", value)
                         if "ParamI" in self.vowel_params:
-                            self.model.AddParameterValue(
-                                "ParamI", rms * 1.0 if rms < 0.06 else 0
-                            )
+                            value = min(rms * 1.0 if rms < 0.06 else 0, 1.0)
+                            self.model.SetParameterValue("ParamI", value)
                         if "ParamU" in self.vowel_params:
-                            self.model.AddParameterValue(
-                                "ParamU", rms * 1.5 if 0.03 < rms < 0.1 else 0
-                            )
+                            value = min(rms * 1.5 if 0.03 < rms < 0.1 else 0, 1.0)
+                            self.model.SetParameterValue("ParamU", value)
                         if "ParamE" in self.vowel_params:
-                            self.model.AddParameterValue(
-                                "ParamE", rms * 1.0 if 0.03 < rms < 0.08 else 0
-                            )
+                            value = min(rms * 1.0 if 0.03 < rms < 0.08 else 0, 1.0)
+                            self.model.SetParameterValue("ParamE", value)
                     except Exception as e:
                         pass
 
                 print(f"RMS: {rms:.3f}")
+            else:
+                # When audio is not playing, reset mouth parameters to neutral/closed position
+                for param_id in self.mouth_params:
+                    try:
+                        self.model.SetParameterValue(param_id, 0.0)
+                    except Exception as e:
+                        pass
+                
+                for param_id in self.vowel_params:
+                    try:
+                        self.model.SetParameterValue(param_id, 0.0)
+                    except Exception as e:
+                        pass
             
             # Check if audio finished playing
             if self.audio_in_use and not pygame.mixer.music.get_busy():
@@ -588,7 +622,7 @@ class Agent:
                 self.audio_done.set()  # Signal that audio is done
                 self.model.SetExpression("normal")
 
-                self.setup_ffmpeg(use_audio_file=False)
+                # self.setup_ffmpeg(use_audio_file=False)
         
 
             self.model.SetOffset(self.dx, self.dy)
@@ -617,7 +651,7 @@ class Agent:
                     # If we encounter too many errors, restart ffmpeg
                     if self.ffmpeg_error_count > 10:
                         print("Too many ffmpeg errors, restarting the process")
-                        self.setup_ffmpeg(use_audio_file=self.audio_in_use)
+                        # self.setup_ffmpeg(use_audio_file=self.audio_in_use)
                         self.ffmpeg_error_count = 0
                     else:
                         self.ffmpeg_error_count += 1
@@ -640,7 +674,11 @@ if __name__ == "__main__":
     load_dotenv()
     
     os.environ["GEMINI_API_KEY"] = os.getenv("GEMINI_API_KEY")
-    os.environ["ELEVENLABS_API_KEY"] = os.getenv("ELEVENLABS_API_KEY")
+    
+    os.environ["ELEVENLABS_API_KEY"] = "sk_8b13d5403e2ab933c24ff5d413fa5361ff59ccdbda6d8bdf"
+    os.environ["ELEVENLABS_VOICE_ID"] = "Z3R5wn05IrDiVCyEkUrK"
+    os.environ["ELEVENLABS_MODEL_ID"] = "eleven_multilingual_v2"
+    
     os.environ["PLAY_HT_USER_ID"] = os.getenv("PLAY_HT_USER_ID")
     os.environ["PLAY_HT_API_KEY"] = os.getenv("PLAY_HT_API_KEY")
     os.environ["SMALLEST_API_KEY"] = os.getenv("SMALLEST_API_KEY")
@@ -649,6 +687,6 @@ if __name__ == "__main__":
     os.environ["SMALLEST_API_KEY"] = os.getenv("SMALLEST_API_KEY")
     os.environ["YOUTUBE_STREAM_KEY"] = os.getenv("YOUTUBE_STREAM_KEY")
 
-    tts_option = TTS_Options(os.getenv("TTS_OPTION"))
-    agt = Agent("Resources/miku_pro_jp/runtime/miku_sample_t04.model3.json",tts_option, os.environ["YOUTUBE_STREAM_KEY"], background=True, speak=True)
+    tts_option = TTS_Options("elevenlabs")
+    agt = Agent("Resources/tungtungtung/tungtungtung.model3.json",tts_option, os.environ["YOUTUBE_STREAM_KEY"], background=False, speak=True)
     agt.run_agent()

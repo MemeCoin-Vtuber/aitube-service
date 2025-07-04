@@ -1,0 +1,271 @@
+{
+	"Version": 3,
+	"Parameters": [
+		{
+			"Id": "ParamAngleX",
+			"GroupId": "ParamGroup",
+			"Name": "Angle X"
+		},
+		{
+			"Id": "ParamAngleY",
+			"GroupId": "ParamGroup",
+			"Name": "Angle Y"
+		},
+		{
+			"Id": "ParamAngleZ",
+			"GroupId": "ParamGroup",
+			"Name": "Angle Z"
+		},
+		{
+			"Id": "Bubble1",
+			"GroupId": "ParamGroup8",
+			"Name": "Bubble 1"
+		},
+		{
+			"Id": "Bubble2",
+			"GroupId": "ParamGroup8",
+			"Name": "Bubble 2"
+		},
+		{
+			"Id": "Bubble3",
+			"GroupId": "ParamGroup8",
+			"Name": "Bubble 3"
+		},
+		{
+			"Id": "ParamEyeLOpen",
+			"GroupId": "ParamGroup2",
+			"Name": "EyeL Open"
+		},
+		{
+			"Id": "ParamEyeLSmile",
+			"GroupId": "ParamGroup2",
+			"Name": "EyeL Smile"
+		},
+		{
+			"Id": "ParamEyeROpen",
+			"GroupId": "ParamGroup2",
+			"Name": "EyeR Open"
+		},
+		{
+			"Id": "ParamEyeRSmile",
+			"GroupId": "ParamGroup2",
+			"Name": "EyeR Smile"
+		},
+		{
+			"Id": "ParamEyeBallX",
+			"GroupId": "ParamGroup3",
+			"Name": "Eyeball X"
+		},
+		{
+			"Id": "ParamEyeBallY",
+			"GroupId": "ParamGroup3",
+			"Name": "Eyeball Y"
+		},
+		{
+			"Id": "ParamBrowLAngle",
+			"GroupId": "ParamGroup4",
+			"Name": "BrowL Angle"
+		},
+		{
+			"Id": "ParamBrowRAngle",
+			"GroupId": "ParamGroup4",
+			"Name": "BrowR Angle"
+		},
+		{
+			"Id": "ParamBrowLForm",
+			"GroupId": "ParamGroup4",
+			"Name": "BrowL Form"
+		},
+		{
+			"Id": "ParamBrowRForm",
+			"GroupId": "ParamGroup4",
+			"Name": "BrowR Form"
+		},
+		{
+			"Id": "ParamBrowLY",
+			"GroupId": "ParamGroup4",
+			"Name": "BrowL Y"
+		},
+		{
+			"Id": "ParamBrowRY",
+			"GroupId": "ParamGroup4",
+			"Name": "BrowR Y"
+		},
+		{
+			"Id": "ParamBrowLX",
+			"GroupId": "ParamGroup4",
+			"Name": "BrowL X"
+		},
+		{
+			"Id": "ParamBrowRX",
+			"GroupId": "ParamGroup4",
+			"Name": "BrowR X"
+		},
+		{
+			"Id": "ParamMouthForm",
+			"GroupId": "ParamGroup5",
+			"Name": "Mouth Form"
+		},
+		{
+			"Id": "ParamMouthOpenY",
+			"GroupId": "ParamGroup5",
+			"Name": "Mouth Open"
+		},
+		{
+			"Id": "ParamCheek",
+			"GroupId": "ParamGroup5",
+			"Name": "Cheek"
+		},
+		{
+			"Id": "ParamBreath",
+			"GroupId": "ParamGroup6",
+			"Name": "Breath"
+		},
+		{
+			"Id": "ParamBodyAngleX",
+			"GroupId": "ParamGroup6",
+			"Name": "Body X"
+		},
+		{
+			"Id": "ParamBodyAngleY",
+			"GroupId": "ParamGroup6",
+			"Name": "Body Y"
+		},
+		{
+			"Id": "ParamBodyAngleZ",
+			"GroupId": "ParamGroup6",
+			"Name": "Body Z"
+		},
+		{
+			"Id": "DorsalJiggle1",
+			"GroupId": "ParamGroup7",
+			"Name": "Dorsal Jiggle 1"
+		},
+		{
+			"Id": "DorsalJiggle2",
+			"GroupId": "ParamGroup7",
+			"Name": "Dorsal Jiggle 2"
+		},
+		{
+			"Id": "FinTopJiggle1",
+			"GroupId": "ParamGroup7",
+			"Name": "Fin Top Jiggle 1"
+		},
+		{
+			"Id": "FinTopJiggle2",
+			"GroupId": "ParamGroup7",
+			"Name": "Fin Top Jiggle 2"
+		},
+		{
+			"Id": "FinBottomJiggle1",
+			"GroupId": "ParamGroup7",
+			"Name": "Fin Bottom Jiggle 1"
+		},
+		{
+			"Id": "FinBottomJiggle2",
+			"GroupId": "ParamGroup7",
+			"Name": "Fin Bottom Jiggle 2"
+		},
+		{
+			"Id": "TailJiggle1",
+			"GroupId": "ParamGroup7",
+			"Name": "Tail Jiggle 1"
+		},
+		{
+			"Id": "TailJiggle2",
+			"GroupId": "ParamGroup7",
+			"Name": "Tail Jiggle 2"
+		},
+		{
+			"Id": "seaweed",
+			"GroupId": "ParamGroup9",
+			"Name": "Seaweed"
+		},
+		{
+			"Id": "WaterJiggle",
+			"GroupId": "ParamGroup9",
+			"Name": "Water Jiggle"
+		},
+		{
+			"Id": "HideTank",
+			"GroupId": "ParamGroup10",
+			"Name": "Hide Tank"
+		}
+	],
+	"ParameterGroups": [
+		{
+			"Id": "ParamGroup",
+			"GroupId": "",
+			"Name": "Head"
+		},
+		{
+			"Id": "ParamGroup8",
+			"GroupId": "",
+			"Name": "Bubble"
+		},
+		{
+			"Id": "ParamGroup2",
+			"GroupId": "",
+			"Name": "Eyes"
+		},
+		{
+			"Id": "ParamGroup3",
+			"GroupId": "",
+			"Name": "Eyeball"
+		},
+		{
+			"Id": "ParamGroup4",
+			"GroupId": "",
+			"Name": "Brows"
+		},
+		{
+			"Id": "ParamGroup5",
+			"GroupId": "",
+			"Name": "Mouth"
+		},
+		{
+			"Id": "ParamGroup6",
+			"GroupId": "",
+			"Name": "Body"
+		},
+		{
+			"Id": "ParamGroup7",
+			"GroupId": "",
+			"Name": "Fins"
+		},
+		{
+			"Id": "ParamGroup9",
+			"GroupId": "",
+			"Name": "Seaweed"
+		},
+		{
+			"Id": "ParamGroup10",
+			"GroupId": "",
+			"Name": "Toggle"
+		}
+	],
+	"Parts": [
+		{
+			"Id": "Face",
+			"Name": "Face"
+		},
+		{
+			"Id": "Part",
+			"Name": "Pec Fins"
+		},
+		{
+			"Id": "Skull",
+			"Name": "Skull"
+		},
+		{
+			"Id": "Seaweed",
+			"Name": "Seaweed"
+		}
+	],
+	"CombinedParameters": [
+		[
+			"ParamEyeBallX",
+			"ParamEyeBallY"
+		]
+	]
+}

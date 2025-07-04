@@ -1,0 +1,336 @@
+{
+	"Version": 3,
+	"Parameters": [
+		{
+			"Id": "Param5",
+			"GroupId": "",
+			"Name": "木棍1"
+		},
+		{
+			"Id": "Param6",
+			"GroupId": "",
+			"Name": "木棍2"
+		},
+		{
+			"Id": "Param7",
+			"GroupId": "",
+			"Name": "木棍动画"
+		},
+		{
+			"Id": "Param8",
+			"GroupId": "ParamGroup4",
+			"Name": "动画参数"
+		},
+		{
+			"Id": "ParamAngleX",
+			"GroupId": "",
+			"Name": "角度 X"
+		},
+		{
+			"Id": "ParamAngleY",
+			"GroupId": "",
+			"Name": "角度 Y"
+		},
+		{
+			"Id": "ParamAngleZ",
+			"GroupId": "",
+			"Name": "角度 Z"
+		},
+		{
+			"Id": "ParamEyeLOpen",
+			"GroupId": "",
+			"Name": "左眼 开闭"
+		},
+		{
+			"Id": "ParamEyeLSmile",
+			"GroupId": "",
+			"Name": "左眼 微笑"
+		},
+		{
+			"Id": "ParamEyeROpen",
+			"GroupId": "",
+			"Name": "右眼 开闭"
+		},
+		{
+			"Id": "ParamEyeRSmile",
+			"GroupId": "",
+			"Name": "右眼 微笑"
+		},
+		{
+			"Id": "Param",
+			"GroupId": "ParamGroup",
+			"Name": "R1"
+		},
+		{
+			"Id": "Param3",
+			"GroupId": "ParamGroup",
+			"Name": "L1"
+		},
+		{
+			"Id": "Param2",
+			"GroupId": "ParamGroup",
+			"Name": "R2"
+		},
+		{
+			"Id": "Param4",
+			"GroupId": "ParamGroup",
+			"Name": "L2"
+		},
+		{
+			"Id": "ParamEyeBallX",
+			"GroupId": "",
+			"Name": "眼珠 X"
+		},
+		{
+			"Id": "ParamEyeBallY",
+			"GroupId": "",
+			"Name": "眼珠 Y"
+		},
+		{
+			"Id": "ParamBrowLY",
+			"GroupId": "",
+			"Name": "左眉 上下"
+		},
+		{
+			"Id": "ParamBrowRY",
+			"GroupId": "",
+			"Name": "右眉 上下"
+		},
+		{
+			"Id": "ParamBrowLX",
+			"GroupId": "",
+			"Name": "左眉 左右"
+		},
+		{
+			"Id": "ParamBrowRX",
+			"GroupId": "",
+			"Name": "右眉 左右"
+		},
+		{
+			"Id": "ParamBrowLAngle",
+			"GroupId": "",
+			"Name": "左眉 角度"
+		},
+		{
+			"Id": "ParamBrowRAngle",
+			"GroupId": "",
+			"Name": "右眉 角度"
+		},
+		{
+			"Id": "ParamBrowLForm",
+			"GroupId": "",
+			"Name": "左眉 変形"
+		},
+		{
+			"Id": "ParamBrowRForm",
+			"GroupId": "",
+			"Name": "右眉 変形"
+		},
+		{
+			"Id": "ParamMouthForm",
+			"GroupId": "",
+			"Name": "嘴 变形"
+		},
+		{
+			"Id": "ParamMouthOpenY",
+			"GroupId": "",
+			"Name": "嘴 开闭"
+		},
+		{
+			"Id": "ParamCheek",
+			"GroupId": "",
+			"Name": "脸颊泛红"
+		},
+		{
+			"Id": "ParamBodyAngleX",
+			"GroupId": "",
+			"Name": "身体旋转 X"
+		},
+		{
+			"Id": "ParamBodyAngleY",
+			"GroupId": "",
+			"Name": "身体旋转 Y"
+		},
+		{
+			"Id": "ParamBodyAngleZ",
+			"GroupId": "",
+			"Name": "身体旋转 Z"
+		},
+		{
+			"Id": "ParamBreath",
+			"GroupId": "",
+			"Name": "呼吸"
+		},
+		{
+			"Id": "ParamHairFront",
+			"GroupId": "",
+			"Name": "摇动 前发"
+		},
+		{
+			"Id": "ParamHairSide",
+			"GroupId": "",
+			"Name": "摇动 侧发"
+		},
+		{
+			"Id": "ParamHairBack",
+			"GroupId": "",
+			"Name": "摇动 后发"
+		},
+		{
+			"Id": "Param_Angle_Rotation2",
+			"GroupId": "ParamGroup2",
+			"Name": "[0]Rs旋转"
+		},
+		{
+			"Id": "Param_Angle_Rotation3",
+			"GroupId": "ParamGroup2",
+			"Name": "[1]Rs旋转"
+		},
+		{
+			"Id": "Param_Angle_Rotation4",
+			"GroupId": "ParamGroup2",
+			"Name": "[2]Rs旋转"
+		},
+		{
+			"Id": "Param_Angle_Rotation5",
+			"GroupId": "ParamGroup3",
+			"Name": "[0]Ls旋转"
+		},
+		{
+			"Id": "Param_Angle_Rotation6",
+			"GroupId": "ParamGroup3",
+			"Name": "[1]Ls旋转"
+		},
+		{
+			"Id": "Param_Angle_Rotation7",
+			"GroupId": "ParamGroup3",
+			"Name": "[2]Ls旋转"
+		}
+	],
+	"ParameterGroups": [
+		{
+			"Id": "ParamGroup4",
+			"GroupId": "",
+			"Name": "动画"
+		},
+		{
+			"Id": "ParamGroup",
+			"GroupId": "",
+			"Name": "Reyewl"
+		},
+		{
+			"Id": "ParamGroup2",
+			"GroupId": "",
+			"Name": "Rs旋转"
+		},
+		{
+			"Id": "ParamGroup3",
+			"GroupId": "",
+			"Name": "Ls旋转"
+		}
+	],
+	"Parts": [
+		{
+			"Id": "Part13",
+			"Name": "K帧用"
+		},
+		{
+			"Id": "Part",
+			"Name": "动作"
+		},
+		{
+			"Id": "Part2",
+			"Name": "拿棍子"
+		},
+		{
+			"Id": "Part3",
+			"Name": "文件夹18"
+		},
+		{
+			"Id": "Part10",
+			"Name": "右手"
+		},
+		{
+			"Id": "ArtMesh6_Skinning",
+			"Name": "文件夹21(蒙皮)"
+		},
+		{
+			"Id": "ArtMesh7_Skinning",
+			"Name": "文件夹20(蒙皮)"
+		},
+		{
+			"Id": "ArtMesh9_Skinning",
+			"Name": "文件夹22(蒙皮)"
+		},
+		{
+			"Id": "ArtMesh10_Skinning",
+			"Name": "图层68(蒙皮)"
+		},
+		{
+			"Id": "ArtMesh43_Skinning",
+			"Name": "图层77(蒙皮)"
+		},
+		{
+			"Id": "ArtMesh44_Skinning",
+			"Name": "图层78(蒙皮)"
+		},
+		{
+			"Id": "ArtMesh45_Skinning",
+			"Name": "文件夹17(2)(蒙皮)"
+		},
+		{
+			"Id": "Part14",
+			"Name": "拿棍子"
+		},
+		{
+			"Id": "Part4",
+			"Name": "左眼"
+		},
+		{
+			"Id": "Part5",
+			"Name": "右眼"
+		},
+		{
+			"Id": "Part6",
+			"Name": "嘴巴"
+		},
+		{
+			"Id": "Part9",
+			"Name": "左手"
+		},
+		{
+			"Id": "Part11",
+			"Name": "右腿"
+		},
+		{
+			"Id": "Part12",
+			"Name": "左腿"
+		},
+		{
+			"Id": "ArtMesh47_Skinning",
+			"Name": "图层77(蒙皮)"
+		},
+		{
+			"Id": "ArtMesh48_Skinning",
+			"Name": "图层78(蒙皮)"
+		},
+		{
+			"Id": "ArtMesh49_Skinning",
+			"Name": "文件夹17(2)(蒙皮)"
+		},
+		{
+			"Id": "Part7",
+			"Name": "文件夹14"
+		},
+		{
+			"Id": "Part8",
+			"Name": "文件夹12"
+		}
+	],
+	"CombinedParameters": [
+		[
+			"ParamMouthForm",
+			"ParamMouthOpenY"
+		]
+	]
+}
