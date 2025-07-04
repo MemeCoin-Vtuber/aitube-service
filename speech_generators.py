@@ -1,4 +1,4 @@
-from smallest import Smallest
+from smallestai import WavesClient
 from elevenlabs import ElevenLabs, save
 from pydub import AudioSegment
 
@@ -6,7 +6,7 @@ from pyht import Client
 from pyht.client import TTSOptions
 from io import BytesIO
 
-def generate_speech_smallest_ai(client: Smallest, text: str):
+def generate_speech_smallest_ai(client: WavesClient, text: str):
         
     temp_filename = f"output_temp.wav"
     

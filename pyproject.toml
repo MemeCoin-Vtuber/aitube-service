@@ -16,5 +16,6 @@ dependencies = [
     "pygame>=2.6.1",
     "pyht>=0.1.14",
     "resources>=0.0.1",
+    "smallestai>=3.1.0",
     "staty>=1.2.4",
 ]

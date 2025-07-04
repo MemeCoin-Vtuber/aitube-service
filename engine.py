@@ -23,7 +23,7 @@ from time import sleep
 
 from pyht import Client
 from pyht.client import TTSOptions
-from smallest import Smallest
+from smallestai import WavesClient
 from elevenlabs import ElevenLabs
 
 from prompts import BIO_PROMPT, LOOK_AROUND_PROMPT, GENERATE_EXPRESSION_PROMPT
@@ -144,7 +144,7 @@ class Agent:
                 api_key=os.environ["PLAY_HT_API_KEY"]
             )
         elif tts_option == TTS_Options.SMALLESTAI:
-            self.client = Smallest(
+            self.client = WavesClient(
                 api_key=os.environ["SMALLEST_API_KEY"],
                 model=os.environ["SMALLEST_MODEL"],
                 voice_id=os.environ["SMALLEST_VOICE_ID"]
